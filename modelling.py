@@ -5,6 +5,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
@@ -141,17 +142,17 @@ rf_grid.fit(x_train, y_train)
 
 
 '''
-                Model creation & Evaluation
+                Random Forest Model creation & Evaluation
 
 
 '''
 
 # Spin up a Random Forest Classifier
-model = RandomForestClassifier(n_estimators = 1600, min_samples_split = 5, min_samples_leaf = 1, max_features = 'auto',max_depth = 10, bootstrap = True)
+model_rf = RandomForestClassifier(n_estimators = 1600, min_samples_split = 5, min_samples_leaf = 1, max_features = 'auto',max_depth = 10, bootstrap = True)
 
-model.fit(x_train, y_train)
+model_rf.fit(x_train, y_train)
 
-yhat_train = list(model.predict(x_train))
+yhat_train = list(model_rf.predict(x_train))
 
 training_error = mean_squared_error(y_train, yhat_train)
 
@@ -160,7 +161,12 @@ results = pd.DataFrame(x_train)
 
 
 
-yhat_test = list(model.predict(x_test))
+yhat_test = list(model_rf.predict(x_test))
+
+
+test_error = mean_squared_error(y_test, yhat_test)
+
+
 
 test_results = pd.DataFrame(x_test)
 
@@ -169,5 +175,49 @@ test_results['goal_pred'] = yhat_test
 test_results['goals'] = list(y_test)
 
 
-test_error = mean_squared_error(y_test, yhat_test)
+'''
+                K-Nearest Neighbours Hyperparameter Tuning
+
+
+'''
+
+#List Hyperparameters that we want to tune.
+leaf_size = list(range(1,50))
+n_neighbors = list(range(1,30))
+p=[1,2]
+#Convert to dictionary
+hyperparameters = dict(leaf_size=leaf_size, n_neighbors=n_neighbors, p=p)
+#Create new KNN object
+knn = KNeighborsClassifier()
+#Use GridSearch
+clf = RandomizedSearchCV(estimator = knn, param_distributions = hyperparameters,n_iter = 100, cv=10, random_state = 42)
+#Fit the model
+best_model = clf.fit(x,y)
+#Print The value of best Hyperparameters
+print('Best leaf_size:', best_model.best_estimator_.get_params()['leaf_size'])
+print('Best p:', best_model.best_estimator_.get_params()['p'])
+print('Best n_neighbors:', best_model.best_estimator_.get_params()['n_neighbors'])
+
+
+
+'''
+            K-Nearest Neighbours Model Creation & Evaluation
+
+'''
+
+model_knn = KNeighborsClassifier(leaf_size = 31, p =2, n_neighbors = 26)
+
+model_knn.fit(x_train, y_train)
+
+knn_yhat_train = list(model_knn.predict(x_train))
+
+knn_training_error = mean_squared_error(knn_yhat_train, y_train)
+
+
+knn_yhat_test = list(model_knn.predict(x_test))
+
+knn_test_error = mean_squared_error(knn_yhat_test, y_test)
+
+test_results['knn_goal_pred'] = knn_yhat_test
+
 
